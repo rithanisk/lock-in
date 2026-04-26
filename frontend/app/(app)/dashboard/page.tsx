@@ -6,7 +6,6 @@ import { CoinBadge } from "@/components/custom/CoinBadge";
 import { StreakBadge } from "@/components/custom/StreakBadge";
 import { TaskCard } from "@/components/custom/TaskCard";
 import { useAuthStore } from "@/stores/useAuthStore";
-import { useWalletStore } from "@/stores/useWalletStore";
 import type { Task } from "@/types";
 import api from "@/lib/api";
 import Link from "next/link";
@@ -14,7 +13,6 @@ import { Button } from "@/components/ui/button";
 
 export default function DashboardPage() {
   const { user } = useAuthStore();
-  const { balance } = useWalletStore();
   const [activeTasks, setActiveTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -50,7 +48,7 @@ export default function DashboardPage() {
             <CardTitle className="text-sm text-muted-foreground">Balance</CardTitle>
           </CardHeader>
           <CardContent>
-            <CoinBadge amount={balance} size="lg" />
+            <CoinBadge amount={user?.balance ?? 0} size="lg" />
           </CardContent>
         </Card>
 

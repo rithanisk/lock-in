@@ -4,12 +4,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CoinBadge } from "@/components/custom/CoinBadge";
 import { StreakBadge } from "@/components/custom/StreakBadge";
 import { useAuthStore } from "@/stores/useAuthStore";
-import { useWalletStore } from "@/stores/useWalletStore";
 import { Separator } from "@/components/ui/separator";
 
 export default function ProfilePage() {
   const { user } = useAuthStore();
-  const { balance } = useWalletStore();
 
   if (!user) return null;
 
@@ -37,7 +35,7 @@ export default function ProfilePage() {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <p className="text-sm text-muted-foreground mb-1">Balance</p>
-              <CoinBadge amount={balance} />
+              <CoinBadge amount={user.balance} />
             </div>
             <div>
               <p className="text-sm text-muted-foreground mb-1">Current Streak</p>

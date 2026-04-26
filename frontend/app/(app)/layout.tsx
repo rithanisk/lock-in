@@ -5,7 +5,6 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useAuthStore } from "@/stores/useAuthStore";
-import { useWalletStore } from "@/stores/useWalletStore";
 import { CoinBadge } from "@/components/custom/CoinBadge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -23,24 +22,36 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const { user, setUser, loading, setLoading } = useAuthStore();
-  const { balance, setBalance } = useWalletStore();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
+    async function waitForAccessToken() {
+      const supabase = createClient();
+      const start = Date.now();
+      const maxWaitMs = 8000;
+      while (Date.now() - start < maxWaitMs) {
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+        if (session?.access_token) return;
+        await new Promise((r) => setTimeout(r, 50));
+      }
+    }
+
     async function loadUser() {
       try {
+        await waitForAccessToken();
         const res = await api.get("/users/me");
         setUser(res.data);
-        setBalance(res.data.balance);
       } catch {
-        // Not authenticated
+        // Not authenticated or API error (e.g. wrong JWT secret on backend)
       } finally {
         setLoading(false);
       }
     }
     loadUser();
-  }, [setUser, setBalance, setLoading]);
+  }, [setUser, setLoading]);
 
   async function handleSignOut() {
     const supabase = createClient();
@@ -70,7 +81,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
         {user && (
           <div className="px-6 pb-4">
-            <CoinBadge amount={balance} size="md" />
+            <CoinBadge amount={user.balance} size="md" />
           </div>
         )}
 
