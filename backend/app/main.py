@@ -15,9 +15,12 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="LockIn API", version="0.1.0", lifespan=lifespan)
 
+from app.config import get_settings
+
+settings = get_settings()
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=[settings.frontend_url],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
