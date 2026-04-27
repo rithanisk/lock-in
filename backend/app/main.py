@@ -3,19 +3,16 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.config import get_settings
 from app.routers import tasks, squads, users
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup: could start background scheduler here
     yield
-    # Shutdown
 
 
 app = FastAPI(title="LockIn API", version="0.1.0", lifespan=lifespan)
-
-from app.config import get_settings
 
 settings = get_settings()
 app.add_middleware(

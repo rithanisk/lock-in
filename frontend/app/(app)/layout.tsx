@@ -26,26 +26,38 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     setMounted(true);
-    async function waitForAccessToken() {
-      const supabase = createClient();
-      const start = Date.now();
-      const maxWaitMs = 8000;
-      while (Date.now() - start < maxWaitMs) {
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
-        if (session?.access_token) return;
-        await new Promise((r) => setTimeout(r, 50));
-      }
-    }
-
     async function loadUser() {
+      const supabase = createClient();
+
+      // Wait for session to be available
+      let session = null;
+      for (let i = 0; i < 20; i++) {
+        const { data } = await supabase.auth.getSession();
+        if (data.session?.access_token) {
+          session = data.session;
+          break;
+        }
+        await new Promise((r) => setTimeout(r, 200));
+      }
+
+      if (!session) {
+        console.warn("LockIn: No session found after waiting");
+        setLoading(false);
+        return;
+      }
+
       try {
-        await waitForAccessToken();
         const res = await api.get("/users/me");
         setUser(res.data);
-      } catch {
-        // Not authenticated or API error (e.g. wrong JWT secret on backend)
+      } catch (err) {
+        console.error("LockIn: /users/me failed, falling back to Supabase", err);
+        // Fallback: load directly from Supabase
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("*")
+          .eq("id", session.user.id)
+          .single();
+        if (profile) setUser(profile);
       } finally {
         setLoading(false);
       }
