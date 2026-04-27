@@ -1,10 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TaskCard } from "@/components/custom/TaskCard";
-import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import { cn } from "@/lib/utils";
 import type { Task } from "@/types";
 import api from "@/lib/api";
 
@@ -12,6 +11,7 @@ export default function TasksPage() {
   const [myTasks, setMyTasks] = useState<Task[]>([]);
   const [verifyingTasks, setVerifyingTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
+  const [tab, setTab] = useState<"my" | "verifying">("my");
 
   useEffect(() => {
     async function load() {
@@ -31,41 +31,54 @@ export default function TasksPage() {
     load();
   }, []);
 
+  const tasks = tab === "my" ? myTasks : verifyingTasks;
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Tasks</h1>
+        <h1 className="text-2xl font-bold">Stakes</h1>
         <Link href="/tasks/new">
-          <Button>New Task</Button>
+          <button className="rounded-xl bg-gray-900 text-white px-4 py-2 text-sm font-medium hover:bg-gray-800 transition-colors">
+            + Stake
+          </button>
         </Link>
       </div>
 
-      <Tabs defaultValue="my">
-        <TabsList>
-          <TabsTrigger value="my">My Tasks ({myTasks.length})</TabsTrigger>
-          <TabsTrigger value="verifying">Verifying ({verifyingTasks.length})</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="my" className="space-y-3 mt-4">
-          {loading ? (
-            <p className="text-muted-foreground">Loading...</p>
-          ) : myTasks.length === 0 ? (
-            <p className="text-muted-foreground py-8 text-center">No tasks yet.</p>
-          ) : (
-            myTasks.map((task) => <TaskCard key={task.id} task={task} />)
+      {/* Tabs */}
+      <div className="flex gap-1 bg-muted rounded-xl p-1">
+        <button
+          onClick={() => setTab("my")}
+          className={cn(
+            "flex-1 text-sm font-medium py-2 rounded-lg transition-colors",
+            tab === "my" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"
           )}
-        </TabsContent>
-
-        <TabsContent value="verifying" className="space-y-3 mt-4">
-          {loading ? (
-            <p className="text-muted-foreground">Loading...</p>
-          ) : verifyingTasks.length === 0 ? (
-            <p className="text-muted-foreground py-8 text-center">No tasks to verify.</p>
-          ) : (
-            verifyingTasks.map((task) => <TaskCard key={task.id} task={task} />)
+        >
+          My Stakes ({myTasks.length})
+        </button>
+        <button
+          onClick={() => setTab("verifying")}
+          className={cn(
+            "flex-1 text-sm font-medium py-2 rounded-lg transition-colors",
+            tab === "verifying" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"
           )}
-        </TabsContent>
-      </Tabs>
+        >
+          Verifying ({verifyingTasks.length})
+        </button>
+      </div>
+
+      <div className="space-y-3">
+        {loading ? (
+          <p className="text-center py-8 text-muted-foreground">Loading...</p>
+        ) : tasks.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-border py-10 text-center">
+            <p className="text-muted-foreground">
+              {tab === "my" ? "No stakes yet" : "Nothing to verify"}
+            </p>
+          </div>
+        ) : (
+          tasks.map((task) => <TaskCard key={task.id} task={task} />)
+        )}
+      </div>
     </div>
   );
 }

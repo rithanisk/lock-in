@@ -2,30 +2,23 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { CoinBadge } from "@/components/custom/CoinBadge";
+import { cn } from "@/lib/utils";
 import api from "@/lib/api";
 import type { UserSummary } from "@/types";
 
 const categories = [
-  { value: "study", label: "Study" },
-  { value: "fitness", label: "Fitness" },
-  { value: "wellness", label: "Wellness" },
-  { value: "productivity", label: "Productivity" },
-  { value: "social", label: "Social" },
-  { value: "custom", label: "Custom" },
+  { value: "study", label: "Study", emoji: "&#x1F4DA;" },
+  { value: "fitness", label: "Fitness", emoji: "&#x1F3CB;" },
+  { value: "wellness", label: "Wellness", emoji: "&#x1F9D8;" },
+  { value: "productivity", label: "Productive", emoji: "&#x26A1;" },
+  { value: "social", label: "Social", emoji: "&#x1F465;" },
+  { value: "custom", label: "Other", emoji: "&#x2699;" },
 ];
+
+const stakePresets = [1, 5, 10, 25, 50];
 
 export default function NewTaskPage() {
   const router = useRouter();
@@ -33,7 +26,6 @@ export default function NewTaskPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // Form state
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("custom");
@@ -41,30 +33,23 @@ export default function NewTaskPage() {
   const [proofType, setProofType] = useState("photo");
   const [deadline, setDeadline] = useState("");
 
-  // Verifier search
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<UserSummary[]>([]);
   const [selectedVerifier, setSelectedVerifier] = useState<UserSummary | null>(null);
 
   async function searchUsers(q: string) {
     setSearchQuery(q);
-    if (q.length < 2) {
-      setSearchResults([]);
-      return;
-    }
+    if (q.length < 2) { setSearchResults([]); return; }
     try {
       const res = await api.get(`/users/search?q=${encodeURIComponent(q)}`);
       setSearchResults(res.data);
-    } catch {
-      // handle error
-    }
+    } catch { /* */ }
   }
 
   async function handleSubmit() {
     if (!selectedVerifier) return;
     setError("");
     setLoading(true);
-
     try {
       await api.post("/tasks/", {
         title,
@@ -77,205 +62,234 @@ export default function NewTaskPage() {
       });
       router.push("/tasks");
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Failed to create task";
-      setError(message);
+      const axiosErr = err as { response?: { data?: { detail?: string } } };
+      setError(axiosErr?.response?.data?.detail || "Failed to create stake");
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <div className="max-w-lg mx-auto space-y-6">
-      <h1 className="text-2xl font-bold">Create Task</h1>
+    <div className="space-y-6">
+      <h1 className="text-2xl font-bold">New Stake</h1>
 
-      {/* Step 1: Task Details */}
+      {/* Progress */}
+      <div className="flex gap-2">
+        {[1, 2, 3].map((s) => (
+          <div
+            key={s}
+            className={cn(
+              "h-1 flex-1 rounded-full transition-colors",
+              s <= step ? "bg-gray-900" : "bg-muted"
+            )}
+          />
+        ))}
+      </div>
+
+      {/* Step 1 */}
       {step === 1 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Task Details</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="title">What do you want to accomplish?</Label>
-              <Input
-                id="title"
-                placeholder="e.g., Study 2 hours for midterm"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-              />
-            </div>
+        <div className="space-y-5">
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">What&apos;s the task?</Label>
+            <Input
+              placeholder="e.g., Complete Chapter 5 Problems"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              className="rounded-xl h-11"
+            />
+          </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="desc">Description (optional)</Label>
-              <Textarea
-                id="desc"
-                placeholder="Add details..."
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                rows={2}
-              />
-            </div>
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">Description (optional)</Label>
+            <Textarea
+              placeholder="Add details..."
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              rows={2}
+              className="rounded-xl"
+            />
+          </div>
 
-            <div className="space-y-2">
-              <Label>Category</Label>
-              <Select value={category} onValueChange={setCategory}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {categories.map((c) => (
-                    <SelectItem key={c.value} value={c.value}>
-                      {c.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="deadline">Deadline</Label>
-              <Input
-                id="deadline"
-                type="datetime-local"
-                value={deadline}
-                onChange={(e) => setDeadline(e.target.value)}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Proof Type</Label>
-              <Select value={proofType} onValueChange={setProofType}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="photo">Photo</SelectItem>
-                  <SelectItem value="text">Text</SelectItem>
-                  <SelectItem value="both">Both</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <Button
-              className="w-full"
-              onClick={() => setStep(2)}
-              disabled={!title || !deadline}
-            >
-              Next: Set Stake
-            </Button>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Step 2: Stake */}
-      {step === 2 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Set Your Stake</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <p className="text-sm text-muted-foreground">
-              How many LockCoins are you willing to put on the line?
-            </p>
-
-            <div className="flex items-center gap-4">
-              <Input
-                type="range"
-                min={1}
-                max={50}
-                value={stakeAmount}
-                onChange={(e) => setStakeAmount(Number(e.target.value))}
-                className="flex-1"
-              />
-              <CoinBadge amount={stakeAmount} size="lg" />
-            </div>
-
-            <div className="flex gap-2">
-              {[1, 5, 10, 25, 50].map((v) => (
-                <Button
-                  key={v}
-                  variant={stakeAmount === v ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setStakeAmount(v)}
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">Category</Label>
+            <div className="grid grid-cols-3 gap-2">
+              {categories.map((c) => (
+                <button
+                  key={c.value}
+                  onClick={() => setCategory(c.value)}
+                  className={cn(
+                    "rounded-xl border py-2.5 text-sm font-medium transition-colors",
+                    category === c.value
+                      ? "border-gray-900 bg-gray-900 text-white"
+                      : "border-border hover:bg-muted"
+                  )}
                 >
-                  {v}
-                </Button>
+                  <span dangerouslySetInnerHTML={{ __html: c.emoji }} />{" "}
+                  {c.label}
+                </button>
               ))}
             </div>
+          </div>
 
-            <div className="flex gap-3">
-              <Button variant="outline" onClick={() => setStep(1)} className="flex-1">
-                Back
-              </Button>
-              <Button onClick={() => setStep(3)} className="flex-1">
-                Next: Choose Verifier
-              </Button>
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">Deadline</Label>
+            <Input
+              type="datetime-local"
+              value={deadline}
+              onChange={(e) => setDeadline(e.target.value)}
+              className="rounded-xl h-11"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">Proof type</Label>
+            <div className="flex gap-2">
+              {[
+                { value: "photo", label: "Photo" },
+                { value: "text", label: "Text" },
+                { value: "both", label: "Both" },
+              ].map((p) => (
+                <button
+                  key={p.value}
+                  onClick={() => setProofType(p.value)}
+                  className={cn(
+                    "flex-1 rounded-xl border py-2 text-sm font-medium transition-colors",
+                    proofType === p.value
+                      ? "border-gray-900 bg-gray-900 text-white"
+                      : "border-border hover:bg-muted"
+                  )}
+                >
+                  {p.label}
+                </button>
+              ))}
             </div>
-          </CardContent>
-        </Card>
+          </div>
+
+          <button
+            onClick={() => setStep(2)}
+            disabled={!title || !deadline}
+            className="w-full rounded-xl bg-gray-900 text-white font-medium py-2.5 text-sm hover:bg-gray-800 transition-colors disabled:opacity-40"
+          >
+            Next
+          </button>
+        </div>
+      )}
+
+      {/* Step 2: Stake Amount */}
+      {step === 2 && (
+        <div className="space-y-5">
+          <div className="text-center py-4">
+            <p className="text-sm text-muted-foreground mb-2">How much are you putting on the line?</p>
+            <p className="text-5xl font-bold text-accent">${stakeAmount}</p>
+          </div>
+
+          <div className="flex gap-2 justify-center">
+            {stakePresets.map((v) => (
+              <button
+                key={v}
+                onClick={() => setStakeAmount(v)}
+                className={cn(
+                  "w-14 h-14 rounded-xl border text-sm font-semibold transition-colors",
+                  stakeAmount === v
+                    ? "border-gray-900 bg-gray-900 text-white"
+                    : "border-border hover:bg-muted"
+                )}
+              >
+                ${v}
+              </button>
+            ))}
+          </div>
+
+          <input
+            type="range"
+            min={1}
+            max={50}
+            value={stakeAmount}
+            onChange={(e) => setStakeAmount(Number(e.target.value))}
+            className="w-full accent-gray-900"
+          />
+
+          <div className="flex gap-3">
+            <button
+              onClick={() => setStep(1)}
+              className="flex-1 rounded-xl border border-border py-2.5 text-sm font-medium hover:bg-muted transition-colors"
+            >
+              Back
+            </button>
+            <button
+              onClick={() => setStep(3)}
+              className="flex-1 rounded-xl bg-gray-900 text-white py-2.5 text-sm font-medium hover:bg-gray-800 transition-colors"
+            >
+              Next
+            </button>
+          </div>
+        </div>
       )}
 
       {/* Step 3: Verifier */}
       {step === 3 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Choose Your Verifier</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label>Search for a friend</Label>
-              <Input
-                placeholder="Type a name..."
-                value={searchQuery}
-                onChange={(e) => searchUsers(e.target.value)}
-              />
+        <div className="space-y-5">
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">Choose your verifier</Label>
+            <Input
+              placeholder="Search by name..."
+              value={searchQuery}
+              onChange={(e) => searchUsers(e.target.value)}
+              className="rounded-xl h-11"
+            />
+          </div>
+
+          {searchResults.length > 0 && (
+            <div className="rounded-xl border divide-y max-h-48 overflow-y-auto">
+              {searchResults.map((u) => (
+                <button
+                  key={u.id}
+                  className="w-full text-left px-4 py-3 hover:bg-muted transition-colors flex items-center gap-3"
+                  onClick={() => {
+                    setSelectedVerifier(u);
+                    setSearchResults([]);
+                    setSearchQuery(u.display_name);
+                  }}
+                >
+                  <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-xs font-bold">
+                    {u.display_name.charAt(0)}
+                  </div>
+                  <span className="font-medium text-sm">{u.display_name}</span>
+                </button>
+              ))}
             </div>
+          )}
 
-            {searchResults.length > 0 && (
-              <div className="border rounded-lg divide-y max-h-48 overflow-y-auto">
-                {searchResults.map((u) => (
-                  <button
-                    key={u.id}
-                    className="w-full text-left px-3 py-2 hover:bg-muted transition-colors flex items-center justify-between"
-                    onClick={() => {
-                      setSelectedVerifier(u);
-                      setSearchResults([]);
-                      setSearchQuery(u.display_name);
-                    }}
-                  >
-                    <span className="font-medium text-sm">{u.display_name}</span>
-                    {u.university && (
-                      <span className="text-xs text-muted-foreground">{u.university}</span>
-                    )}
-                  </button>
-                ))}
+          {selectedVerifier && (
+            <div className="rounded-xl bg-emerald-50 p-4 flex items-center gap-3">
+              <div className="w-8 h-8 rounded-full bg-emerald-200 flex items-center justify-center text-xs font-bold">
+                {selectedVerifier.display_name.charAt(0)}
               </div>
-            )}
-
-            {selectedVerifier && (
-              <div className="bg-primary/5 rounded-lg p-3">
-                <p className="text-sm font-medium">
-                  Verifier: {selectedVerifier.display_name}
-                </p>
+              <div>
+                <p className="text-sm font-semibold">{selectedVerifier.display_name}</p>
+                <p className="text-xs text-muted-foreground">Will verify your task</p>
               </div>
-            )}
-
-            {error && <p className="text-sm text-destructive">{error}</p>}
-
-            <div className="flex gap-3">
-              <Button variant="outline" onClick={() => setStep(2)} className="flex-1">
-                Back
-              </Button>
-              <Button
-                onClick={handleSubmit}
-                disabled={!selectedVerifier || loading}
-                className="flex-1"
-              >
-                {loading ? "Creating..." : `Lock in ${stakeAmount} LC`}
-              </Button>
             </div>
-          </CardContent>
-        </Card>
+          )}
+
+          {error && <p className="text-sm text-destructive">{error}</p>}
+
+          <div className="flex gap-3">
+            <button
+              onClick={() => setStep(2)}
+              className="flex-1 rounded-xl border border-border py-2.5 text-sm font-medium hover:bg-muted transition-colors"
+            >
+              Back
+            </button>
+            <button
+              onClick={handleSubmit}
+              disabled={!selectedVerifier || loading}
+              className="flex-1 rounded-xl bg-gray-900 text-white py-2.5 text-sm font-medium hover:bg-gray-800 transition-colors disabled:opacity-40"
+            >
+              {loading ? "Creating..." : `Stake $${stakeAmount}`}
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );

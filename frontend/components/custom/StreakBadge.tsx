@@ -9,10 +9,19 @@ interface StreakBadgeProps {
 
 export function StreakBadge({ streak, className }: StreakBadgeProps) {
   return (
-    <div className={cn("flex items-center gap-1", className)}>
-      <span className="text-orange-500 text-lg">&#x1F525;</span>
-      <span className="font-semibold">{streak}</span>
-      <span className="text-sm text-muted-foreground">day streak</span>
+    <div
+      className={cn(
+        "inline-flex items-center gap-2 rounded-xl bg-gray-800 px-4 py-2",
+        className
+      )}
+    >
+      <span className="text-xl">&#x1F525;</span>
+      <div className="text-center">
+        <p className="text-xl font-bold text-white leading-none">{streak}</p>
+        <p className="text-[10px] font-medium uppercase tracking-wider text-gray-400">
+          Streak
+        </p>
+      </div>
     </div>
   );
 }
