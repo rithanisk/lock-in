@@ -50,7 +50,9 @@ export default function TasksPage() {
           onClick={() => setTab("my")}
           className={cn(
             "flex-1 text-sm font-medium py-2 rounded-lg transition-colors",
-            tab === "my" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"
+            tab === "my"
+              ? "bg-card text-foreground shadow-sm"
+              : "text-muted-foreground",
           )}
         >
           My Stakes ({myTasks.length})
@@ -59,7 +61,9 @@ export default function TasksPage() {
           onClick={() => setTab("verifying")}
           className={cn(
             "flex-1 text-sm font-medium py-2 rounded-lg transition-colors",
-            tab === "verifying" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"
+            tab === "verifying"
+              ? "bg-card text-foreground shadow-sm"
+              : "text-muted-foreground",
           )}
         >
           Verifying ({verifyingTasks.length})

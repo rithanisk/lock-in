@@ -40,6 +40,8 @@ class TaskResponse(BaseModel):
     stake_amount: int
     creator_id: str
     verifier_id: str
+    creator_name: str | None = None
+    verifier_name: str | None = None
     status: TaskStatus
     deadline: datetime
     proof_type: str

@@ -49,7 +49,9 @@ export default function FriendsPage() {
     }
     try {
       const res = await api.get(`/users/search?q=${encodeURIComponent(q)}`);
-      setSearchResults(res.data.filter((u: UserSummary) => !excludedIds.has(u.id)));
+      setSearchResults(
+        res.data.filter((u: UserSummary) => !excludedIds.has(u.id)),
+      );
     } catch {
       // handle error
     }
@@ -69,7 +71,10 @@ export default function FriendsPage() {
     }
   }
 
-  async function respondToRequest(friendshipId: string, action: "accept" | "decline") {
+  async function respondToRequest(
+    friendshipId: string,
+    action: "accept" | "decline",
+  ) {
     setActionLoading(friendshipId);
     try {
       const res = await api.put(`/friends/${friendshipId}`, { action });
@@ -104,7 +109,9 @@ export default function FriendsPage() {
 
       {/* Search & Add */}
       <div className="space-y-3">
-        <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">Add Friends</h2>
+        <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
+          Add Friends
+        </h2>
         <Input
           placeholder="Search by name..."
           value={searchQuery}
@@ -114,7 +121,10 @@ export default function FriendsPage() {
         {searchResults.length > 0 && (
           <div className="rounded-2xl border divide-y overflow-hidden">
             {searchResults.map((u) => (
-              <div key={u.id} className="flex items-center justify-between px-4 py-3">
+              <div
+                key={u.id}
+                className="flex items-center justify-between px-4 py-3"
+              >
                 <div className="flex items-center gap-3">
                   <div className="w-9 h-9 rounded-full bg-muted flex items-center justify-center text-xs font-bold">
                     {u.display_name.charAt(0)}
@@ -122,7 +132,9 @@ export default function FriendsPage() {
                   <div>
                     <p className="font-medium text-sm">{u.display_name}</p>
                     {u.university && (
-                      <p className="text-xs text-muted-foreground">{u.university}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {u.university}
+                      </p>
                     )}
                   </div>
                 </div>
@@ -156,10 +168,14 @@ export default function FriendsPage() {
                     </div>
                     <div>
                       <p className="font-medium text-sm">{u.display_name}</p>
-                      <p className="text-xs text-muted-foreground">Request sent</p>
+                      <p className="text-xs text-muted-foreground">
+                        Request sent
+                      </p>
                     </div>
                   </div>
-                  <span className="text-xs text-muted-foreground font-medium">Pending</span>
+                  <span className="text-xs text-muted-foreground font-medium">
+                    Pending
+                  </span>
                 </CardContent>
               </Card>
             ))}
@@ -182,8 +198,12 @@ export default function FriendsPage() {
                       {r.profile.display_name.charAt(0)}
                     </div>
                     <div>
-                      <p className="font-medium text-sm">{r.profile.display_name}</p>
-                      <p className="text-xs text-muted-foreground">Wants to be friends</p>
+                      <p className="font-medium text-sm">
+                        {r.profile.display_name}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Wants to be friends
+                      </p>
                     </div>
                   </div>
                   <div className="flex gap-2">
@@ -218,7 +238,9 @@ export default function FriendsPage() {
           Your Friends ({friends.length})
         </h2>
         {friends.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No friends yet. Search above to add some!</p>
+          <p className="text-sm text-muted-foreground">
+            No friends yet. Search above to add some!
+          </p>
         ) : (
           <div className="space-y-2">
             {friends.map((f) => (
@@ -229,9 +251,12 @@ export default function FriendsPage() {
                       {f.profile.display_name.charAt(0)}
                     </div>
                     <div>
-                      <p className="font-medium text-sm">{f.profile.display_name}</p>
+                      <p className="font-medium text-sm">
+                        {f.profile.display_name}
+                      </p>
                       <p className="text-xs text-muted-foreground">
-                        Streak: {f.profile.current_streak} | Best: {f.profile.longest_streak}
+                        Streak: {f.profile.current_streak} | Best:{" "}
+                        {f.profile.longest_streak}
                       </p>
                     </div>
                   </div>

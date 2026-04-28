@@ -10,12 +10,12 @@ import api from "@/lib/api";
 import type { Friendship, UserSummary } from "@/types";
 
 const categories = [
-  { value: "study", label: "Study", emoji: "&#x1F4DA;" },
-  { value: "fitness", label: "Fitness", emoji: "&#x1F3CB;" },
-  { value: "wellness", label: "Wellness", emoji: "&#x1F9D8;" },
-  { value: "productivity", label: "Productive", emoji: "&#x26A1;" },
-  { value: "social", label: "Social", emoji: "&#x1F465;" },
-  { value: "custom", label: "Other", emoji: "&#x2699;" },
+  { value: "study", label: "Study" },
+  { value: "fitness", label: "Fitness" },
+  { value: "wellness", label: "Wellness" },
+  { value: "productivity", label: "Productive" },
+  { value: "social", label: "Social" },
+  { value: "custom", label: "Other" },
 ];
 
 const stakePresets = [1, 5, 10, 25, 50];
@@ -133,7 +133,6 @@ export default function NewTaskPage() {
                       : "border-border hover:bg-muted"
                   )}
                 >
-                  <span dangerouslySetInnerHTML={{ __html: c.emoji }} />{" "}
                   {c.label}
                 </button>
               ))}

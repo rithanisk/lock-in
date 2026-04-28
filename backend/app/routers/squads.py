@@ -72,8 +72,19 @@ async def get_my_squads(user: dict = Depends(get_current_user)):
     squad_ids = [m["squad_id"] for m in memberships.data]
     if not squad_ids:
         return []
-    squads = sb.table("squads").select("*").in_("id", squad_ids).execute()
-    return squads.data
+    squads = sb.table("squads").select("*").in_("id", squad_ids).execute().data
+
+    # Include member_count for list endpoints so frontend shows accurate values.
+    for squad in squads:
+        count_result = (
+            sb.table("squad_members")
+            .select("id", count="exact")
+            .eq("squad_id", squad["id"])
+            .execute()
+        )
+        squad["member_count"] = count_result.count or 0
+
+    return squads
 
 
 @router.get("/{squad_id}", response_model=SquadResponse)

@@ -7,6 +7,25 @@ from app.supabase_client import get_supabase
 
 router = APIRouter()
 
+TASK_SELECT_WITH_NAMES = (
+    "*, "
+    "creator:profiles!tasks_creator_id_fkey(display_name), "
+    "verifier:profiles!tasks_verifier_id_fkey(display_name)"
+)
+
+
+def _attach_task_names(task: dict) -> dict:
+    creator = task.pop("creator", None) or {}
+    verifier = task.pop("verifier", None) or {}
+    task["creator_name"] = creator.get("display_name")
+    task["verifier_name"] = verifier.get("display_name")
+    return task
+
+
+def _get_task_with_names(sb, task_id: str) -> dict:
+    task = sb.table("tasks").select(TASK_SELECT_WITH_NAMES).eq("id", task_id).single().execute().data
+    return _attach_task_names(task)
+
 
 @router.post("/", response_model=TaskResponse, status_code=status.HTTP_201_CREATED)
 async def create_task(body: TaskCreate, user: dict = Depends(get_current_user)):
@@ -38,20 +57,21 @@ async def create_task(body: TaskCreate, user: dict = Depends(get_current_user)):
         type="task_assigned",
         link=f"/tasks/{task['id']}",
     )
-    return task
+    return _get_task_with_names(sb, task["id"])
 
 
 @router.post("/{task_id}/accept", response_model=TaskResponse)
 async def accept_task(task_id: str, user: dict = Depends(get_current_user)):
     sb = get_supabase()
-    task = sb.table("tasks").select("*").eq("id", task_id).single().execute().data
+    task = sb.table("tasks").select(TASK_SELECT_WITH_NAMES).eq("id", task_id).single().execute().data
+    task = _attach_task_names(task)
 
     if task["verifier_id"] != user["id"]:
         raise HTTPException(403, "Only the assigned verifier can accept")
     if task["status"] != TaskStatus.pending_acceptance.value:
         raise HTTPException(400, "Task is not pending acceptance")
 
-    result = sb.table("tasks").update({"status": TaskStatus.active.value}).eq("id", task_id).execute()
+    sb.table("tasks").update({"status": TaskStatus.active.value}).eq("id", task_id).execute()
 
     notification_service.create_notification(
         user_id=task["creator_id"],
@@ -60,20 +80,21 @@ async def accept_task(task_id: str, user: dict = Depends(get_current_user)):
         type="task_accepted",
         link=f"/tasks/{task_id}",
     )
-    return result.data[0]
+    return _get_task_with_names(sb, task_id)
 
 
 @router.post("/{task_id}/decline", response_model=TaskResponse)
 async def decline_task(task_id: str, user: dict = Depends(get_current_user)):
     sb = get_supabase()
-    task = sb.table("tasks").select("*").eq("id", task_id).single().execute().data
+    task = sb.table("tasks").select(TASK_SELECT_WITH_NAMES).eq("id", task_id).single().execute().data
+    task = _attach_task_names(task)
 
     if task["verifier_id"] != user["id"]:
         raise HTTPException(403, "Only the assigned verifier can decline")
     if task["status"] != TaskStatus.pending_acceptance.value:
         raise HTTPException(400, "Task is not pending acceptance")
 
-    result = sb.table("tasks").update({"status": TaskStatus.declined.value}).eq("id", task_id).execute()
+    sb.table("tasks").update({"status": TaskStatus.declined.value}).eq("id", task_id).execute()
 
     # Return stake since verifier declined
     coin_service.return_stake(task["creator_id"], task["stake_amount"])
@@ -85,13 +106,14 @@ async def decline_task(task_id: str, user: dict = Depends(get_current_user)):
         type="task_declined",
         link=f"/tasks/{task_id}",
     )
-    return result.data[0]
+    return _get_task_with_names(sb, task_id)
 
 
 @router.post("/{task_id}/submit", response_model=TaskResponse)
 async def submit_proof(task_id: str, body: ProofSubmit, user: dict = Depends(get_current_user)):
     sb = get_supabase()
-    task = sb.table("tasks").select("*").eq("id", task_id).single().execute().data
+    task = sb.table("tasks").select(TASK_SELECT_WITH_NAMES).eq("id", task_id).single().execute().data
+    task = _attach_task_names(task)
 
     if task["creator_id"] != user["id"]:
         raise HTTPException(403, "Only the task creator can submit proof")
@@ -99,7 +121,7 @@ async def submit_proof(task_id: str, body: ProofSubmit, user: dict = Depends(get
         raise HTTPException(400, "Task is not active")
 
     from datetime import datetime, timezone
-    result = sb.table("tasks").update({
+    sb.table("tasks").update({
         "status": TaskStatus.proof_submitted.value,
         "proof_text": body.proof_text,
         "proof_url": body.proof_url,
@@ -113,13 +135,14 @@ async def submit_proof(task_id: str, body: ProofSubmit, user: dict = Depends(get
         type="proof_submitted",
         link=f"/tasks/{task_id}",
     )
-    return result.data[0]
+    return _get_task_with_names(sb, task_id)
 
 
 @router.post("/{task_id}/verify", response_model=TaskResponse)
 async def verify_task(task_id: str, body: VerifyRequest, user: dict = Depends(get_current_user)):
     sb = get_supabase()
-    task = sb.table("tasks").select("*").eq("id", task_id).single().execute().data
+    task = sb.table("tasks").select(TASK_SELECT_WITH_NAMES).eq("id", task_id).single().execute().data
+    task = _attach_task_names(task)
 
     if task["verifier_id"] != user["id"]:
         raise HTTPException(403, "Only the assigned verifier can verify")
@@ -129,7 +152,7 @@ async def verify_task(task_id: str, body: VerifyRequest, user: dict = Depends(ge
     from datetime import datetime, timezone
 
     if body.approved:
-        result = sb.table("tasks").update({
+        sb.table("tasks").update({
             "status": TaskStatus.completed.value,
             "verified_at": datetime.now(timezone.utc).isoformat(),
         }).eq("id", task_id).execute()
@@ -150,7 +173,7 @@ async def verify_task(task_id: str, body: VerifyRequest, user: dict = Depends(ge
             link=f"/tasks/{task_id}",
         )
     else:
-        result = sb.table("tasks").update({
+        sb.table("tasks").update({
             "status": TaskStatus.failed.value,
             "verified_at": datetime.now(timezone.utc).isoformat(),
         }).eq("id", task_id).execute()
@@ -168,27 +191,40 @@ async def verify_task(task_id: str, body: VerifyRequest, user: dict = Depends(ge
             link=f"/tasks/{task_id}",
         )
 
-    return result.data[0]
+    return _get_task_with_names(sb, task_id)
 
 
 @router.get("/my", response_model=list[TaskResponse])
 async def get_my_tasks(user: dict = Depends(get_current_user)):
     sb = get_supabase()
-    result = sb.table("tasks").select("*").eq("creator_id", user["id"]).order("created_at", desc=True).execute()
-    return result.data
+    result = (
+        sb.table("tasks")
+        .select(TASK_SELECT_WITH_NAMES)
+        .eq("creator_id", user["id"])
+        .order("created_at", desc=True)
+        .execute()
+    )
+    return [_attach_task_names(task) for task in result.data]
 
 
 @router.get("/verifying", response_model=list[TaskResponse])
 async def get_verifying_tasks(user: dict = Depends(get_current_user)):
     sb = get_supabase()
-    result = sb.table("tasks").select("*").eq("verifier_id", user["id"]).order("created_at", desc=True).execute()
-    return result.data
+    result = (
+        sb.table("tasks")
+        .select(TASK_SELECT_WITH_NAMES)
+        .eq("verifier_id", user["id"])
+        .order("created_at", desc=True)
+        .execute()
+    )
+    return [_attach_task_names(task) for task in result.data]
 
 
 @router.get("/{task_id}", response_model=TaskResponse)
 async def get_task(task_id: str, user: dict = Depends(get_current_user)):
     sb = get_supabase()
-    task = sb.table("tasks").select("*").eq("id", task_id).single().execute().data
+    task = sb.table("tasks").select(TASK_SELECT_WITH_NAMES).eq("id", task_id).single().execute().data
+    task = _attach_task_names(task)
     if task["creator_id"] != user["id"] and task["verifier_id"] != user["id"]:
         raise HTTPException(403, "Not authorized to view this task")
     return task

@@ -74,7 +74,7 @@ export function TaskCard({ task, showSubmit }: TaskCardProps) {
               <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
               <path d="M16 3.13a4 4 0 0 1 0 7.75" />
             </svg>
-            Verifier
+            Verifier: {task.verifier_name ?? "Unknown"}
           </div>
           {isActive && showSubmit !== false && (
             <span className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground">

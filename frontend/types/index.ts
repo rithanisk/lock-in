@@ -23,6 +23,8 @@ export interface Task {
   stake_amount: number;
   creator_id: string;
   verifier_id: string;
+  creator_name?: string | null;
+  verifier_name?: string | null;
   status: TaskStatus;
   deadline: string;
   proof_type: string;

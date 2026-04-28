@@ -1,12 +1,23 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/stores/useAuthStore";
-import { StreakBadge } from "@/components/custom/StreakBadge";
+import { createClient } from "@/lib/supabase/client";
+import { Button } from "@/components/ui/button";
 
 export default function ProfilePage() {
-  const { user } = useAuthStore();
+  const router = useRouter();
+  const { user, setUser } = useAuthStore();
 
   if (!user) return null;
+
+  async function handleSignOut() {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    setUser(null);
+    router.push("/login");
+    router.refresh();
+  }
 
   return (
     <div className="space-y-6">
@@ -31,9 +42,9 @@ export default function ProfilePage() {
           <p className="text-xs text-gray-400 mb-1">Balance</p>
           <p className="text-2xl font-bold">${user.balance.toFixed(2)}</p>
         </div>
-        <div className="rounded-2xl border border-border p-4">
-          <p className="text-xs text-muted-foreground mb-1">Current Streak</p>
-          <StreakBadge streak={user.current_streak} />
+        <div className="rounded-2xl bg-emerald-600 p-4 text-white">
+          <p className="text-xs text-emerald-100 mb-1">Current Streak</p>
+          <p className="text-2xl font-bold">{user.current_streak} days</p>
         </div>
         <div className="rounded-2xl border border-border p-4">
           <p className="text-xs text-muted-foreground mb-1">Best Streak</p>
@@ -47,6 +58,12 @@ export default function ProfilePage() {
               : "N/A"}
           </p>
         </div>
+      </div>
+
+      <div className="md:hidden pt-2">
+        <Button variant="outline" className="w-full" onClick={handleSignOut}>
+          Sign out
+        </Button>
       </div>
     </div>
   );

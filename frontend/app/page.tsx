@@ -40,8 +40,8 @@ export default function LandingPage() {
 
         <div className="grid md:grid-cols-3 gap-6 text-left">
           <div className="rounded-2xl p-6 border border-border bg-card">
-            <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center text-lg mb-4">
-              &#x1F4B0;
+            <div className="w-10 h-10 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center text-sm font-bold mb-4">
+              $
             </div>
             <h3 className="font-semibold text-lg mb-2">Stake Money</h3>
             <p className="text-muted-foreground text-sm">
@@ -49,8 +49,8 @@ export default function LandingPage() {
             </p>
           </div>
           <div className="rounded-2xl p-6 border border-border bg-card">
-            <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-lg mb-4">
-              &#x1F91D;
+            <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-sm font-bold mb-4">
+              V
             </div>
             <h3 className="font-semibold text-lg mb-2">Get Verified</h3>
             <p className="text-muted-foreground text-sm">
@@ -58,8 +58,8 @@ export default function LandingPage() {
             </p>
           </div>
           <div className="rounded-2xl p-6 border border-border bg-card">
-            <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center text-lg mb-4">
-              &#x1F525;
+            <div className="w-10 h-10 rounded-full bg-orange-100 text-orange-700 flex items-center justify-center text-sm font-bold mb-4">
+              S
             </div>
             <h3 className="font-semibold text-lg mb-2">Build Streaks</h3>
             <p className="text-muted-foreground text-sm">

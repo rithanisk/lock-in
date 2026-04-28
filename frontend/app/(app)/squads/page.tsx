@@ -97,13 +97,13 @@ export default function SquadsPage() {
             <Link key={squad.id} href={`/squads/${squad.id}`}>
               <div className="rounded-2xl border border-border bg-card p-4 hover:shadow-md transition-shadow flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center text-lg">
-                    &#x1F525;
+                  <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center text-sm font-bold text-orange-700">
+                    {squad.name.charAt(0).toUpperCase()}
                   </div>
                   <div>
                     <p className="font-semibold">{squad.name}</p>
                     <p className="text-sm text-muted-foreground">
-                      {squad.member_count ?? 0} members active
+                      {squad.member_count ?? 0} members
                     </p>
                   </div>
                 </div>

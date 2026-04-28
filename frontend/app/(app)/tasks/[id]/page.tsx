@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
+import Link from "next/link";
 import { StatusBadge } from "@/components/custom/StatusBadge";
 import { CountdownTimer } from "@/components/custom/CountdownTimer";
 import { ProofUploader } from "@/components/custom/ProofUploader";
@@ -33,7 +34,12 @@ export default function TaskDetailPage() {
     const channel = supabase
       .channel(`task-${taskId}`)
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "tasks", filter: `id=eq.${taskId}` },
-        (payload) => setTask(payload.new as Task))
+        (payload) =>
+          setTask((prev) => ({
+            ...(payload.new as Task),
+            creator_name: prev?.creator_name ?? null,
+            verifier_name: prev?.verifier_name ?? null,
+          })))
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
@@ -71,6 +77,16 @@ export default function TaskDetailPage() {
 
   return (
     <div className="space-y-6">
+      <div>
+        <Link
+          href="/tasks"
+          className="inline-flex items-center gap-1 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <span aria-hidden="true">&larr;</span>
+          Back to Stakes
+        </Link>
+      </div>
+
       {/* Header */}
       <div>
         <div className="flex items-start justify-between gap-3 mb-2">
@@ -80,6 +96,11 @@ export default function TaskDetailPage() {
         {task.description && (
           <p className="text-muted-foreground text-sm">{task.description}</p>
         )}
+        <div className="mt-3 flex flex-wrap gap-2 text-xs">
+          <span className="rounded-full bg-muted px-2.5 py-1 text-muted-foreground">
+            Verifier: {task.verifier_name ?? "Unknown"}
+          </span>
+        </div>
       </div>
 
       {/* Info bar */}
@@ -90,6 +111,19 @@ export default function TaskDetailPage() {
           <CountdownTimer deadline={task.deadline} className="text-sm font-medium text-destructive" />
         )}
       </div>
+
+      <p className="text-sm font-medium text-red-600">
+        Due date:{" "}
+        {new Date(task.deadline).toLocaleDateString([], {
+          month: "2-digit",
+          day: "2-digit",
+        })}{" "}
+        {new Date(task.deadline).toLocaleTimeString([], {
+          hour: "numeric",
+          minute: "2-digit",
+          hour12: true,
+        })}
+      </p>
 
       {/* Verifier Actions */}
       {isVerifier && task.status === "pending_acceptance" && (

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
+import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -126,6 +127,16 @@ export default function SquadDetailPage() {
 
   return (
     <div className="space-y-6">
+      <div>
+        <Link
+          href="/squads"
+          className="inline-flex items-center gap-1 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <span aria-hidden="true">&larr;</span>
+          Back to Crews
+        </Link>
+      </div>
+
       <div>
         <h1 className="text-2xl font-bold">{squad.name}</h1>
         {squad.description && (
