@@ -24,7 +24,7 @@ def _build_friend_response(row: dict, current_user_id: str) -> dict:
     }
 
 
-@router.get("/", response_model=list[FriendResponse])
+@router.get("", response_model=list[FriendResponse])
 async def list_friends(user: dict = Depends(get_current_user)):
     """List accepted friends with their profiles."""
     sb = get_supabase()

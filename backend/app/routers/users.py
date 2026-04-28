@@ -9,7 +9,7 @@ router = APIRouter()
 
 @router.get("/search", response_model=list[UserSummary])
 async def search_users(
-    q: str = Query(min_length=2),
+    q: str = Query(min_length=1),
     user: dict = Depends(get_current_user),
 ):
     sb = get_supabase()
