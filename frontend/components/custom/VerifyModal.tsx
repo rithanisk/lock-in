@@ -29,7 +29,7 @@ export function VerifyModal({ task, open, onClose, onVerify, loading }: VerifyMo
         <DialogHeader>
           <DialogTitle>Verify: {task.title}</DialogTitle>
           <DialogDescription>
-            Review the proof and decide if the task was completed.
+            Review the proof and decide if the task was completed. Any note you add is visible to the creator after you approve or reject.
           </DialogDescription>
         </DialogHeader>
 
@@ -47,12 +47,18 @@ export function VerifyModal({ task, open, onClose, onVerify, loading }: VerifyMo
             </div>
           )}
 
-          <Textarea
-            placeholder="Optional feedback..."
-            value={feedback}
-            onChange={(e) => setFeedback(e.target.value)}
-            rows={2}
-          />
+          <div className="space-y-1.5">
+            <label htmlFor="verify-feedback" className="text-sm font-medium">
+              Feedback / note <span className="text-muted-foreground font-normal">(optional)</span>
+            </label>
+            <Textarea
+              id="verify-feedback"
+              placeholder="Explain your decision — visible to the stake creator…"
+              value={feedback}
+              onChange={(e) => setFeedback(e.target.value)}
+              rows={3}
+            />
+          </div>
 
           <div className="flex gap-3">
             <Button

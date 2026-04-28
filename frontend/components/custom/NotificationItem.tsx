@@ -19,16 +19,25 @@ export function NotificationItem({ notification, onMarkRead }: NotificationItemP
       )}
       onClick={() => onMarkRead?.(notification.id)}
     >
-      <div className="flex items-start justify-between gap-2">
-        <div>
+      <div className="flex items-start gap-3">
+        <span
+          className={cn(
+            "mt-1.5 h-2 w-2 shrink-0 rounded-full",
+            notification.read ? "bg-muted-foreground/25" : "bg-sky-500",
+          )}
+          aria-hidden
+        />
+        <div className="flex flex-1 items-start justify-between gap-2 min-w-0">
+        <div className="min-w-0">
           <p className={cn("text-sm", !notification.read && "font-semibold")}>
             {notification.title}
           </p>
           <p className="text-sm text-muted-foreground mt-0.5">{notification.body}</p>
         </div>
-        <span className="text-xs text-muted-foreground whitespace-nowrap">
+        <span className="text-xs text-muted-foreground whitespace-nowrap shrink-0">
           {formatDistanceToNow(new Date(notification.created_at), { addSuffix: true })}
         </span>
+        </div>
       </div>
     </div>
   );

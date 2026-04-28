@@ -43,6 +43,7 @@ export default function TaskDetailPage() {
               ...row,
               proof_url: row.proof_url ?? prev.proof_url,
               proof_text: row.proof_text ?? prev.proof_text,
+              verifier_feedback: row.verifier_feedback ?? prev.verifier_feedback,
               creator_name: prev.creator_name,
               verifier_name: prev.verifier_name,
             };
@@ -119,6 +120,14 @@ export default function TaskDetailPage() {
         )}
       </div>
 
+      {task.status === "declined" && (
+        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900">
+          {isVerifier
+            ? "You declined this stake. The creator's stake was returned."
+            : "Verifier declined this stake. Your stake was returned."}
+        </div>
+      )}
+
       <p className="text-sm font-medium text-red-600">
         Due date:{" "}
         {new Date(task.deadline).toLocaleDateString([], {
@@ -153,6 +162,15 @@ export default function TaskDetailPage() {
               <p className="text-sm">{task.proof_text}</p>
             </div>
           )}
+        </div>
+      )}
+
+      {(task.status === "completed" || task.status === "failed") && task.verifier_feedback && (
+        <div className="rounded-2xl border border-border bg-muted/40 p-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">
+            Verifier feedback
+          </p>
+          <p className="text-sm whitespace-pre-wrap">{task.verifier_feedback}</p>
         </div>
       )}
 

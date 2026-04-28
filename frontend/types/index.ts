@@ -32,6 +32,7 @@ export interface Task {
   proof_text: string | null;
   submitted_at: string | null;
   verified_at: string | null;
+  verifier_feedback?: string | null;
   created_at: string;
 }
 

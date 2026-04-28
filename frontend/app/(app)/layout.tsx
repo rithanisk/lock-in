@@ -134,6 +134,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const { user, setUser, loading, setLoading } = useAuthStore();
   const [mounted, setMounted] = useState(false);
+  const [alertsUnreadCount, setAlertsUnreadCount] = useState(0);
 
   useEffect(() => {
     setMounted(true);
@@ -171,6 +172,39 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     }
     loadUser();
   }, [setUser, setLoading]);
+
+  useEffect(() => {
+    if (!user?.id) {
+      setAlertsUnreadCount(0);
+      return;
+    }
+    const supabase = createClient();
+    async function refreshUnread() {
+      const { count } = await supabase
+        .from("notifications")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", user!.id)
+        .eq("read", false);
+      setAlertsUnreadCount(count ?? 0);
+    }
+    refreshUnread();
+    const channel = supabase
+      .channel(`layout-notifications-${user.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "notifications",
+          filter: `user_id=eq.${user.id}`,
+        },
+        () => refreshUnread(),
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id]);
 
   async function handleSignOut() {
     const supabase = createClient();
@@ -222,7 +256,15 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                   : "text-muted-foreground hover:bg-muted",
               )}
             >
-              {item.icon}
+              <span className="relative shrink-0 inline-flex">
+                {item.icon}
+                {item.href === "/notifications" && alertsUnreadCount > 0 && (
+                  <span
+                    className="absolute -top-0.5 -right-1 h-2 w-2 rounded-full bg-sky-500 shadow-sm border border-background"
+                    aria-hidden
+                  />
+                )}
+              </span>
               {item.label}
             </Link>
           ))}
@@ -262,11 +304,17 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             >
               <span
                 className={cn(
-                  "mb-0.5",
+                  "relative mb-0.5 inline-flex",
                   pathname.startsWith(item.href) && "text-accent",
                 )}
               >
                 {item.icon}
+                {item.href === "/notifications" && alertsUnreadCount > 0 && (
+                  <span
+                    className="absolute -top-0.5 -right-1 h-2 w-2 rounded-full bg-sky-500 border border-background"
+                    aria-hidden
+                  />
+                )}
               </span>
               {item.label}
             </Link>

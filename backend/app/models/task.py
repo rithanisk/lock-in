@@ -49,6 +49,7 @@ class TaskResponse(BaseModel):
     proof_text: str | None = None
     submitted_at: datetime | None = None
     verified_at: datetime | None = None
+    verifier_feedback: str | None = None
     created_at: datetime
 
 

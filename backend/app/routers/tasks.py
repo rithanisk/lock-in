@@ -151,10 +151,14 @@ async def verify_task(task_id: str, body: VerifyRequest, user: dict = Depends(ge
 
     from datetime import datetime, timezone
 
+    verify_updates = {"verified_at": datetime.now(timezone.utc).isoformat()}
+    if body.feedback is not None:
+        verify_updates["verifier_feedback"] = body.feedback
+
     if body.approved:
         sb.table("tasks").update({
+            **verify_updates,
             "status": TaskStatus.completed.value,
-            "verified_at": datetime.now(timezone.utc).isoformat(),
         }).eq("id", task_id).execute()
 
         coin_service.return_stake(task["creator_id"], task["stake_amount"])
@@ -165,17 +169,21 @@ async def verify_task(task_id: str, body: VerifyRequest, user: dict = Depends(ge
         longest = max(profile["longest_streak"], new_streak)
         sb.table("profiles").update({"current_streak": new_streak, "longest_streak": longest}).eq("id", task["creator_id"]).execute()
 
+        fb = body.feedback.strip() if body.feedback else ""
+        notif_body = f"'{task['title']}' approved! Stake returned. Streak: {new_streak}"
+        if fb:
+            notif_body = f"{notif_body} Note: {fb}"
         notification_service.create_notification(
             user_id=task["creator_id"],
             title="Task verified!",
-            body=f"'{task['title']}' approved! Stake returned. Streak: {new_streak}",
+            body=notif_body,
             type="task_completed",
             link=f"/tasks/{task_id}",
         )
     else:
         sb.table("tasks").update({
+            **verify_updates,
             "status": TaskStatus.failed.value,
-            "verified_at": datetime.now(timezone.utc).isoformat(),
         }).eq("id", task_id).execute()
 
         coin_service.forfeit_to_verifier(task["creator_id"], task["verifier_id"], task["stake_amount"])
@@ -183,10 +191,14 @@ async def verify_task(task_id: str, body: VerifyRequest, user: dict = Depends(ge
         # Reset streak
         sb.table("profiles").update({"current_streak": 0}).eq("id", task["creator_id"]).execute()
 
+        fb = body.feedback.strip() if body.feedback else ""
+        fail_body = f"'{task['title']}' was not approved. Stake forfeited."
+        if fb:
+            fail_body = f"{fail_body} Feedback: {fb}"
         notification_service.create_notification(
             user_id=task["creator_id"],
             title="Task failed",
-            body=f"'{task['title']}' was not approved. Stake forfeited.",
+            body=fail_body,
             type="task_failed",
             link=f"/tasks/{task_id}",
         )

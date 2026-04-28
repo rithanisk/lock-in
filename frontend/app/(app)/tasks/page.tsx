@@ -1,17 +1,24 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { TaskCard } from "@/components/custom/TaskCard";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
-import type { Task } from "@/types";
+import type { Task, TaskStatus } from "@/types";
 import api from "@/lib/api";
+
+const PAST_STATUSES: TaskStatus[] = ["completed", "failed", "expired", "declined"];
+
+function isPastTask(task: Task) {
+  return PAST_STATUSES.includes(task.status);
+}
 
 export default function TasksPage() {
   const [myTasks, setMyTasks] = useState<Task[]>([]);
   const [verifyingTasks, setVerifyingTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<"my" | "verifying">("my");
+  const [pastExpanded, setPastExpanded] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -33,6 +40,15 @@ export default function TasksPage() {
 
   const tasks = tab === "my" ? myTasks : verifyingTasks;
 
+  const { activeTasks, pastTasks } = useMemo(() => {
+    const active = tasks.filter((t) => !isPastTask(t));
+    const past = tasks.filter((t) => isPastTask(t));
+    return { activeTasks: active, pastTasks: past };
+  }, [tasks]);
+
+  const myPendingCount = myTasks.filter((t) => t.status === "pending_acceptance").length;
+  const verifyingPendingCount = verifyingTasks.filter((t) => t.status === "pending_acceptance").length;
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -47,26 +63,46 @@ export default function TasksPage() {
       {/* Tabs */}
       <div className="flex gap-1 bg-muted rounded-xl p-1">
         <button
+          type="button"
           onClick={() => setTab("my")}
           className={cn(
-            "flex-1 text-sm font-medium py-2 rounded-lg transition-colors",
+            "flex-1 text-sm font-medium py-2 rounded-lg transition-colors inline-flex items-center justify-center gap-2",
             tab === "my"
               ? "bg-card text-foreground shadow-sm"
               : "text-muted-foreground",
           )}
         >
-          My Stakes ({myTasks.length})
+          <span className="inline-flex items-center gap-2">
+            My Stakes ({myTasks.length})
+            {myPendingCount > 0 && (
+              <span
+                className="h-2 w-2 shrink-0 rounded-full bg-amber-500 ring-2 ring-background"
+                title={`${myPendingCount} awaiting verifier`}
+                aria-label={`${myPendingCount} pending acceptance`}
+              />
+            )}
+          </span>
         </button>
         <button
+          type="button"
           onClick={() => setTab("verifying")}
           className={cn(
-            "flex-1 text-sm font-medium py-2 rounded-lg transition-colors",
+            "flex-1 text-sm font-medium py-2 rounded-lg transition-colors inline-flex items-center justify-center gap-2",
             tab === "verifying"
               ? "bg-card text-foreground shadow-sm"
               : "text-muted-foreground",
           )}
         >
-          Verifying ({verifyingTasks.length})
+          <span className="inline-flex items-center gap-2">
+            Verifying ({verifyingTasks.length})
+            {verifyingPendingCount > 0 && (
+              <span
+                className="h-2 w-2 shrink-0 rounded-full bg-sky-500 ring-2 ring-background"
+                title={`${verifyingPendingCount} need your response`}
+                aria-label={`${verifyingPendingCount} pending your acceptance`}
+              />
+            )}
+          </span>
         </button>
       </div>
 
@@ -80,7 +116,33 @@ export default function TasksPage() {
             </p>
           </div>
         ) : (
-          tasks.map((task) => <TaskCard key={task.id} task={task} />)
+          <>
+            {activeTasks.length === 0 && pastTasks.length > 0 ? (
+              <p className="text-center py-4 text-sm text-muted-foreground">No active stakes</p>
+            ) : (
+              activeTasks.map((task) => <TaskCard key={task.id} task={task} />)
+            )}
+
+            {pastTasks.length > 0 && (
+              <div className="pt-2 border-t border-border space-y-3">
+                <button
+                  type="button"
+                  onClick={() => setPastExpanded((e) => !e)}
+                  className="w-full flex items-center justify-between rounded-xl border border-border bg-muted/40 px-4 py-3 text-left text-sm font-medium hover:bg-muted/60 transition-colors"
+                >
+                  <span className="inline-flex items-center gap-2">
+                    Past stakes
+                    <span className="text-muted-foreground font-normal">({pastTasks.length})</span>
+                  </span>
+                  <span className="text-muted-foreground text-xs" aria-hidden>
+                    {pastExpanded ? "Hide" : "Show"}
+                  </span>
+                </button>
+                {pastExpanded &&
+                  pastTasks.map((task) => <TaskCard key={task.id} task={task} showSubmit={false} />)}
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>

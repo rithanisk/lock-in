@@ -55,10 +55,16 @@ export default function NotificationsPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">
+        <h1 className="text-2xl font-bold flex items-center gap-2 flex-wrap">
+          {unreadCount > 0 && (
+            <span
+              className="h-2.5 w-2.5 shrink-0 rounded-full bg-sky-500"
+              aria-hidden
+            />
+          )}
           Alerts
           {unreadCount > 0 && (
-            <span className="ml-2 text-sm font-normal text-muted-foreground">
+            <span className="text-sm font-normal text-muted-foreground">
               ({unreadCount} new)
             </span>
           )}
