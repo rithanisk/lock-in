@@ -69,6 +69,15 @@ export interface SpendProposal {
   created_at: string;
 }
 
+export interface Friendship {
+  id: string;
+  requester_id: string;
+  addressee_id: string;
+  status: "pending" | "accepted" | "declined";
+  created_at: string;
+  profile: UserSummary;
+}
+
 export interface Notification {
   id: string;
   user_id: string;

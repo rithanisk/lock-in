@@ -17,7 +17,7 @@ import {
 import { SquadPotCard } from "@/components/custom/SquadPotCard";
 import { CoinBadge } from "@/components/custom/CoinBadge";
 import { Badge } from "@/components/ui/badge";
-import type { Squad, SpendProposal } from "@/types";
+import type { Squad, SpendProposal, Friendship } from "@/types";
 import api from "@/lib/api";
 
 interface SquadMember {
@@ -39,6 +39,8 @@ export default function SquadDetailPage() {
   const [proposals, setProposals] = useState<SpendProposal[]>([]);
   const [loading, setLoading] = useState(true);
   const [proposeOpen, setProposeOpen] = useState(false);
+  const [inviteOpen, setInviteOpen] = useState(false);
+  const [friends, setFriends] = useState<Friendship[]>([]);
   const [propTitle, setPropTitle] = useState("");
   const [propAmount, setPropAmount] = useState(5);
   const [actionLoading, setActionLoading] = useState(false);
@@ -79,6 +81,33 @@ export default function SquadDetailPage() {
     }
   }
 
+  async function openInviteDialog() {
+    setInviteOpen(true);
+    try {
+      const res = await api.get("/friends");
+      // Filter out users already in the squad
+      const memberIds = new Set(members.map((m) => m.user_id));
+      setFriends(res.data.filter((f: Friendship) => !memberIds.has(f.profile.id)));
+    } catch {
+      // handle error
+    }
+  }
+
+  async function handleInvite(userId: string) {
+    setActionLoading(true);
+    try {
+      await api.post(`/squads/${squadId}/invite`, { user_id: userId });
+      setFriends((prev) => prev.filter((f) => f.profile.id !== userId));
+      // Refresh members
+      const membersRes = await api.get(`/squads/${squadId}/members`);
+      setMembers(membersRes.data);
+    } catch {
+      // handle error
+    } finally {
+      setActionLoading(false);
+    }
+  }
+
   async function handleVote(proposalId: string, vote: boolean) {
     try {
       await api.post(`/squads/${squadId}/vote`, { proposal_id: proposalId, vote });
@@ -105,6 +134,12 @@ export default function SquadDetailPage() {
         <p className="text-sm text-muted-foreground mt-2">
           Invite code: <code className="bg-muted px-2 py-0.5 rounded">{squad.invite_code}</code>
         </p>
+      </div>
+
+      <div className="flex gap-2">
+        <Button size="sm" variant="outline" className="rounded-xl" onClick={openInviteDialog}>
+          Invite Friend
+        </Button>
       </div>
 
       <SquadPotCard potBalance={squad.pot_balance} memberCount={squad.member_count} />
@@ -197,6 +232,38 @@ export default function SquadDetailPage() {
             <Button className="w-full" onClick={handlePropose} disabled={!propTitle || actionLoading}>
               {actionLoading ? "Submitting..." : "Submit Proposal"}
             </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Invite Friend</DialogTitle>
+            <DialogDescription>Add a friend to this crew.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2 max-h-64 overflow-y-auto">
+            {friends.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No friends available to invite.</p>
+            ) : (
+              friends.map((f) => (
+                <div key={f.id} className="flex items-center justify-between py-2 px-1">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-xs font-bold">
+                      {f.profile.display_name.charAt(0)}
+                    </div>
+                    <span className="font-medium text-sm">{f.profile.display_name}</span>
+                  </div>
+                  <Button
+                    size="sm"
+                    onClick={() => handleInvite(f.profile.id)}
+                    disabled={actionLoading}
+                  >
+                    Invite
+                  </Button>
+                </div>
+              ))
+            )}
           </div>
         </DialogContent>
       </Dialog>

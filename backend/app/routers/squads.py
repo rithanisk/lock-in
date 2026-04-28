@@ -92,6 +92,63 @@ async def get_squad_members(squad_id: str, user: dict = Depends(get_current_user
     return members.data
 
 
+@router.post("/{squad_id}/invite", status_code=status.HTTP_201_CREATED)
+async def invite_friend_to_squad(squad_id: str, body: dict, user: dict = Depends(get_current_user)):
+    """Invite a friend directly to the squad as a member."""
+    sb = get_supabase()
+    invite_user_id = body.get("user_id")
+    if not invite_user_id:
+        raise HTTPException(400, "user_id is required")
+
+    # Verify inviter is a member
+    inviter = sb.table("squad_members").select("id").eq("squad_id", squad_id).eq("user_id", user["id"]).execute()
+    if not inviter.data:
+        raise HTTPException(403, "You are not a member of this squad")
+
+    # Check if already a member
+    existing = sb.table("squad_members").select("id").eq("squad_id", squad_id).eq("user_id", invite_user_id).execute()
+    if existing.data:
+        raise HTTPException(400, "User is already a member")
+
+    # Check member limit
+    squad = sb.table("squads").select("*").eq("id", squad_id).single().execute().data
+    members = sb.table("squad_members").select("id", count="exact").eq("squad_id", squad_id).execute()
+    if members.count >= squad["max_members"]:
+        raise HTTPException(400, "Squad is full")
+
+    # Verify they are friends
+    friendship = (
+        sb.table("friendships")
+        .select("id")
+        .or_(
+            f"and(requester_id.eq.{user['id']},addressee_id.eq.{invite_user_id}),"
+            f"and(requester_id.eq.{invite_user_id},addressee_id.eq.{user['id']})"
+        )
+        .eq("status", "accepted")
+        .execute()
+    )
+    if not friendship.data:
+        raise HTTPException(400, "You can only invite friends")
+
+    sb.table("squad_members").insert({
+        "squad_id": squad_id,
+        "user_id": invite_user_id,
+        "role": "member",
+    }).execute()
+
+    # Notify invited user
+    inviter_profile = sb.table("profiles").select("display_name").eq("id", user["id"]).single().execute().data
+    notification_service.create_notification(
+        user_id=invite_user_id,
+        title="Squad invite",
+        body=f"{inviter_profile['display_name']} added you to {squad['name']}",
+        type="squad_invite",
+        link=f"/squads/{squad_id}",
+    )
+
+    return {"status": "invited"}
+
+
 @router.post("/{squad_id}/spend", response_model=SpendProposalResponse, status_code=status.HTTP_201_CREATED)
 async def create_spend_proposal(squad_id: str, body: SpendProposal, user: dict = Depends(get_current_user)):
     sb = get_supabase()

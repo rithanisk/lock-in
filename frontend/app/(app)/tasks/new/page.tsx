@@ -1,13 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import api from "@/lib/api";
-import type { UserSummary } from "@/types";
+import type { Friendship, UserSummary } from "@/types";
 
 const categories = [
   { value: "study", label: "Study", emoji: "&#x1F4DA;" },
@@ -36,6 +36,15 @@ export default function NewTaskPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<UserSummary[]>([]);
   const [selectedVerifier, setSelectedVerifier] = useState<UserSummary | null>(null);
+  const [friends, setFriends] = useState<Friendship[]>([]);
+  const [friendsLoaded, setFriendsLoaded] = useState(false);
+
+  useEffect(() => {
+    if (step === 3 && !friendsLoaded) {
+      api.get("/friends").then((res) => setFriends(res.data)).catch(() => {});
+      setFriendsLoaded(true);
+    }
+  }, [step, friendsLoaded]);
 
   async function searchUsers(q: string) {
     setSearchQuery(q);
@@ -239,6 +248,7 @@ export default function NewTaskPage() {
             />
           </div>
 
+          {/* Search results */}
           {searchResults.length > 0 && (
             <div className="rounded-xl border divide-y max-h-48 overflow-y-auto">
               {searchResults.map((u) => (
@@ -257,6 +267,30 @@ export default function NewTaskPage() {
                   <span className="font-medium text-sm">{u.display_name}</span>
                 </button>
               ))}
+            </div>
+          )}
+
+          {/* Friends list (shown when not searching) */}
+          {searchQuery.length < 2 && !selectedVerifier && friends.length > 0 && (
+            <div className="space-y-2">
+              <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium">Your Friends</p>
+              <div className="rounded-xl border divide-y max-h-48 overflow-y-auto">
+                {friends.map((f) => (
+                  <button
+                    key={f.id}
+                    className="w-full text-left px-4 py-3 hover:bg-muted transition-colors flex items-center gap-3"
+                    onClick={() => {
+                      setSelectedVerifier(f.profile);
+                      setSearchQuery(f.profile.display_name);
+                    }}
+                  >
+                    <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-xs font-bold">
+                      {f.profile.display_name.charAt(0)}
+                    </div>
+                    <span className="font-medium text-sm">{f.profile.display_name}</span>
+                  </button>
+                ))}
+              </div>
             </div>
           )}
 
