@@ -35,11 +35,18 @@ export default function TaskDetailPage() {
       .channel(`task-${taskId}`)
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "tasks", filter: `id=eq.${taskId}` },
         (payload) =>
-          setTask((prev) => ({
-            ...(payload.new as Task),
-            creator_name: prev?.creator_name ?? null,
-            verifier_name: prev?.verifier_name ?? null,
-          })))
+          setTask((prev) => {
+            const row = payload.new as Partial<Task>;
+            if (!prev) return row as Task;
+            return {
+              ...prev,
+              ...row,
+              proof_url: row.proof_url ?? prev.proof_url,
+              proof_text: row.proof_text ?? prev.proof_text,
+              creator_name: prev.creator_name,
+              verifier_name: prev.verifier_name,
+            };
+          }))
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
@@ -125,6 +132,30 @@ export default function TaskDetailPage() {
         })}
       </p>
 
+      {(task.proof_url || task.proof_text) && (
+        <div className="rounded-2xl border border-border bg-card p-4 space-y-3">
+          <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            Submitted proof
+          </h3>
+          {task.proof_url && (
+            <div className="overflow-hidden rounded-xl border bg-muted/30">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={task.proof_url}
+                alt="Submitted proof"
+                className="mx-auto max-h-[min(360px,55vh)] w-full object-contain"
+              />
+            </div>
+          )}
+          {task.proof_text && (
+            <div>
+              <p className="text-xs font-medium text-muted-foreground mb-1">Notes</p>
+              <p className="text-sm">{task.proof_text}</p>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Verifier Actions */}
       {isVerifier && task.status === "pending_acceptance" && (
         <div className="flex gap-3">
@@ -149,20 +180,6 @@ export default function TaskDetailPage() {
             onSubmit={handleSubmitProof}
             loading={actionLoading}
           />
-        </div>
-      )}
-
-      {/* Proof display */}
-      {task.proof_url && (
-        <div className="rounded-2xl overflow-hidden border">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={task.proof_url} alt="Proof" className="w-full" />
-        </div>
-      )}
-      {task.proof_text && (
-        <div className="rounded-2xl bg-muted p-4">
-          <p className="text-xs font-medium text-muted-foreground mb-1">Proof description</p>
-          <p className="text-sm">{task.proof_text}</p>
         </div>
       )}
 
