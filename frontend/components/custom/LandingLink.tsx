@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 
 function PixelLock({ size = 96 }: { size?: number }) {
@@ -35,7 +36,7 @@ function PixelLock({ size = 96 }: { size?: number }) {
 }
 
 function TransitionLoader() {
-  return (
+  return createPortal(
     <div
       className="fixed inset-0 z-[9999] flex flex-col items-center justify-center gap-6"
       style={{ background: "hsl(68,8%,6%)" }}
@@ -69,7 +70,8 @@ function TransitionLoader() {
         />
       </div>
 
-    </div>
+    </div>,
+    document.body
   );
 }
 
