@@ -17,7 +17,12 @@ app = FastAPI(title="LockIn API", version="0.1.0", lifespan=lifespan)
 settings = get_settings()
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[settings.frontend_url],
+    allow_origins=[
+        settings.frontend_url,
+        "http://localhost:3000",
+        "http://localhost:3001",
+        "http://localhost:3002",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
