@@ -94,18 +94,33 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   }, [setUser, setLoading]);
 
   useEffect(() => {
-    if (!user?.id) { setAlertsUnreadCount(0); return; }
+    const userId = user?.id;
+    if (!userId) {
+      setAlertsUnreadCount(0);
+      return;
+    }
     const supabase = createClient();
     async function refreshUnread() {
-      const { count } = await supabase.from("notifications").select("*", { count: "exact", head: true }).eq("user_id", user!.id).eq("read", false);
+      const { count } = await supabase
+        .from("notifications")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", userId)
+        .eq("read", false);
       setAlertsUnreadCount(count ?? 0);
     }
     refreshUnread();
-    const channel = supabase.channel(`layout-notifications-${user.id}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` }, () => refreshUnread())
+    const channel = supabase
+      .channel(`layout-notifications-${userId}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "notifications", filter: `user_id=eq.${userId}` },
+        () => refreshUnread(),
+      )
       .subscribe();
-    return () => { supabase.removeChannel(channel); };
-  }, [user?.id]);
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id, setAlertsUnreadCount]);
 
   async function handleSignOut() {
     const supabase = createClient();

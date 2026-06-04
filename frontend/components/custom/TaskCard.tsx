@@ -1,18 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { cn } from "@/lib/utils";
 import { StatusBadge } from "@/components/custom/StatusBadge";
 import type { Task } from "@/types";
-
-const categoryAccent: Record<string, string> = {
-  study:        "bg-violet-500",
-  fitness:      "bg-orange-500",
-  wellness:     "bg-emerald-400",
-  productivity: "bg-sky-400",
-  social:       "bg-pink-500",
-  custom:       "bg-muted-foreground",
-};
 
 const categoryLabel: Record<string, string> = {
   study: "Study", fitness: "Fitness", wellness: "Wellness",
@@ -37,7 +27,6 @@ interface TaskCardProps {
 export function TaskCard({ task, showSubmit }: TaskCardProps) {
   const isActive = task.status === "active";
   const { text: timeText, urgent } = getTimeLeft(task.deadline);
-  const accent = categoryAccent[task.category] ?? categoryAccent.custom;
 
   return (
     <Link href={`/tasks/${task.id}`}>

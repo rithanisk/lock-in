@@ -19,46 +19,6 @@ function useCountUp(target: number, duration = 1800) {
   return val;
 }
 
-function RadialChart({ value, max = 100, size = 80 }: { value: number; max?: number; size?: number }) {
-  const [progress, setProgress] = useState(0);
-  const r = (size - 10) / 2;
-  const circ = 2 * Math.PI * r;
-  const pct = progress / max;
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      const start = performance.now();
-      const dur = 1600;
-      const tick = (now: number) => {
-        const p = Math.min((now - start) / dur, 1);
-        const ease = 1 - Math.pow(1 - p, 3);
-        setProgress(value * ease);
-        if (p < 1) requestAnimationFrame(tick);
-      };
-      requestAnimationFrame(tick);
-    }, 200);
-    return () => clearTimeout(timer);
-  }, [value]);
-
-  return (
-    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="mx-auto">
-      <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="6" />
-      <circle cx={size/2} cy={size/2} r={r} fill="none"
-        stroke="hsl(55,100%,50%)" strokeWidth="6"
-        strokeLinecap="round"
-        strokeDasharray={circ}
-        strokeDashoffset={circ * (1 - pct)}
-        transform={`rotate(-90 ${size/2} ${size/2})`}
-        style={{ transition: "none" }}
-      />
-      <text x={size/2} y={size/2 + 1} textAnchor="middle" dominantBaseline="middle"
-        fill="hsl(55,100%,50%)" fontSize="14" fontWeight="700" fontFamily="'JetBrains Mono', monospace">
-        {Math.round(progress)}
-      </text>
-    </svg>
-  );
-}
-
 function BarChart({ value, max, label }: { value: number; max: number; label: string }) {
   const [h, setH] = useState(0);
   const pct = Math.min(value / Math.max(max, 1), 1);
@@ -116,19 +76,6 @@ function AnimatedLC({ value }: { value: number }) {
         ))}
       </div>
       <p className="text-[10px] text-muted-foreground text-center leading-tight">LC on the line</p>
-    </div>
-  );
-}
-
-function PlainNumber({ value, label }: { value: number; label: string }) {
-  const count = useCountUp(value);
-  return (
-    <div className="flex flex-col items-center gap-2">
-      <p className="font-number text-2xl font-bold text-accent">{count}</p>
-      <div className="w-full h-14 flex items-center justify-center">
-        <p className="font-number text-4xl font-bold text-accent/20">{count}</p>
-      </div>
-      <p className="text-[10px] text-muted-foreground text-center leading-tight">{label}</p>
     </div>
   );
 }
