@@ -91,19 +91,6 @@ export default function DashboardPage() {
             <span className="text-xs text-foreground/25">No active streak</span>
           )}
 
-          <div className="flex gap-2.5 mt-5">
-            <Link href="/tasks/new" className="flex-1">
-              <button className="w-full rounded-2xl bg-accent text-accent-foreground font-semibold py-3 text-sm active:scale-[0.97] transition-transform">
-                + New Stake
-              </button>
-            </Link>
-            <Link href="/tasks" className="flex-1">
-              <button className="w-full rounded-2xl border border-white/12 text-foreground/60 font-medium py-3 text-sm active:scale-[0.97] transition-transform"
-                style={{ background: "rgba(255,255,255,0.04)" }}>
-                My Stakes
-              </button>
-            </Link>
-          </div>
         </div>
       </div>
 
