@@ -63,7 +63,6 @@ export default function RegisterPage() {
             </svg>
           </div>
           <h1 className="font-display text-2xl font-bold tracking-tight">Create account</h1>
-          <p className="text-muted-foreground text-sm">Join LockIn and start staking</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
