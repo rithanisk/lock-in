@@ -5,26 +5,28 @@ import { cn } from "@/lib/utils";
 import { StatusBadge } from "@/components/custom/StatusBadge";
 import type { Task } from "@/types";
 
-const categoryColors: Record<string, string> = {
-  study: "bg-indigo-100 text-indigo-700",
-  fitness: "bg-orange-100 text-orange-700",
-  wellness: "bg-green-100 text-green-700",
-  productivity: "bg-blue-100 text-blue-700",
-  social: "bg-pink-100 text-pink-700",
-  custom: "bg-gray-100 text-gray-700",
+const categoryAccent: Record<string, string> = {
+  study:        "bg-violet-500",
+  fitness:      "bg-orange-500",
+  wellness:     "bg-emerald-400",
+  productivity: "bg-sky-400",
+  social:       "bg-pink-500",
+  custom:       "bg-muted-foreground",
 };
 
-function getTimeLeft(deadline: string): string {
+const categoryLabel: Record<string, string> = {
+  study: "Study", fitness: "Fitness", wellness: "Wellness",
+  productivity: "Productive", social: "Social", custom: "Custom",
+};
+
+function getTimeLeft(deadline: string): { text: string; urgent: boolean } {
   const diff = new Date(deadline).getTime() - Date.now();
-  if (diff <= 0) return "Expired";
+  if (diff <= 0) return { text: "Expired", urgent: true };
   const hours = Math.floor(diff / (1000 * 60 * 60));
-  if (hours < 1) {
-    const mins = Math.floor(diff / (1000 * 60));
-    return `${mins}m`;
-  }
-  if (hours < 24) return `${hours}h`;
+  if (hours < 1) { const mins = Math.floor(diff / (1000 * 60)); return { text: `${mins}m left`, urgent: true }; }
+  if (hours < 24) return { text: `${hours}h left`, urgent: hours < 6 };
   const days = Math.floor(hours / 24);
-  return `${days}d`;
+  return { text: `${days}d left`, urgent: false };
 }
 
 interface TaskCardProps {
@@ -34,60 +36,30 @@ interface TaskCardProps {
 
 export function TaskCard({ task, showSubmit }: TaskCardProps) {
   const isActive = task.status === "active";
-  const timeLeft = getTimeLeft(task.deadline);
+  const { text: timeText, urgent } = getTimeLeft(task.deadline);
+  const accent = categoryAccent[task.category] ?? categoryAccent.custom;
 
   return (
     <Link href={`/tasks/${task.id}`}>
-      <div className="rounded-2xl border border-border bg-card p-4 hover:shadow-md transition-shadow">
-        {/* Top row: category, time, amount */}
-        <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center gap-2">
-            <span
-              className={cn(
-                "text-xs font-medium px-2.5 py-0.5 rounded-full capitalize",
-                categoryColors[task.category] ?? categoryColors.custom
+      <div className="rounded-xl bg-card border border-border flex overflow-hidden active:scale-[0.99] transition-transform card-shadow">
+        <div className="flex-1 px-3.5 py-3 flex items-center gap-3">
+          <div className="flex-1 min-w-0">
+            <p className="font-medium text-sm leading-snug truncate text-foreground">{task.title}</p>
+            <p className="text-xs text-muted-foreground mt-0.5 truncate">
+              {categoryLabel[task.category] ?? task.category}
+              {task.verifier_name && ` · ${task.verifier_name}`}
+              {isActive && (
+                <span className={urgent ? " text-red-400" : ""}>{` · ${timeText}`}</span>
               )}
-            >
-              {task.category}
+            </p>
+          </div>
+          <div className="flex flex-col items-end gap-1 shrink-0">
+            <span className="font-number text-sm font-semibold text-accent tabular-nums">
+              {task.stake_amount}<span className="text-[10px] font-normal text-muted-foreground ml-0.5">LC</span>
             </span>
-            {isActive && (
-              <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="opacity-60">
-                  <circle cx="12" cy="12" r="10" />
-                  <polyline points="12 6 12 12 16 14" />
-                </svg>
-                {timeLeft}
-              </span>
-            )}
-          </div>
-          <span className="text-accent font-bold">$ {task.stake_amount}</span>
-        </div>
-
-        {/* Title */}
-        <p className="font-semibold text-foreground mb-3">{task.title}</p>
-
-        {/* Bottom row: verifier + action */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="opacity-50">
-              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-              <circle cx="9" cy="7" r="4" />
-              <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
-              <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-            </svg>
-            Verifier: {task.verifier_name ?? "Unknown"}
-          </div>
-          <div className="flex flex-col items-end gap-1">
-            {isActive && showSubmit !== false && (
-              <span className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
-                  <circle cx="12" cy="13" r="4" />
-                </svg>
-                Submit
-              </span>
-            )}
-            {(!isActive || showSubmit === false) && (
+            {isActive && showSubmit !== false ? (
+              <span className="inline-flex rounded-md bg-accent/15 text-accent border border-accent/20 px-2 py-0.5 text-[10px] font-semibold">Submit</span>
+            ) : (
               <StatusBadge status={task.status} />
             )}
           </div>

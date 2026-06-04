@@ -4,23 +4,19 @@ import { cn } from "@/lib/utils";
 import type { TaskStatus } from "@/types";
 
 const statusConfig: Record<TaskStatus, { label: string; className: string }> = {
-  pending_acceptance: { label: "Pending", className: "bg-amber-50 text-amber-700" },
-  active: { label: "Active", className: "bg-emerald-50 text-emerald-700" },
-  proof_submitted: { label: "Reviewing", className: "bg-blue-50 text-blue-700" },
-  completed: { label: "Completed", className: "bg-emerald-50 text-emerald-700" },
-  failed: { label: "Failed", className: "bg-red-50 text-red-700" },
-  expired: { label: "Expired", className: "bg-gray-100 text-gray-600" },
-  declined: { label: "Declined", className: "bg-red-50 text-red-700" },
+  pending_acceptance: { label: "Pending",   className: "bg-amber-500/10 text-amber-400 border border-amber-500/20" },
+  active:             { label: "Active",    className: "bg-accent/10 text-accent border border-accent/20" },
+  proof_submitted:    { label: "Reviewing", className: "bg-violet-500/10 text-violet-400 border border-violet-500/20" },
+  completed:          { label: "Done",      className: "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" },
+  failed:             { label: "Failed",    className: "bg-red-500/10 text-red-400 border border-red-500/20" },
+  expired:            { label: "Expired",   className: "bg-muted text-muted-foreground border border-border" },
+  declined:           { label: "Declined",  className: "bg-red-500/10 text-red-400 border border-red-500/20" },
 };
 
-interface StatusBadgeProps {
-  status: TaskStatus;
-}
-
-export function StatusBadge({ status }: StatusBadgeProps) {
+export function StatusBadge({ status }: { status: TaskStatus }) {
   const config = statusConfig[status];
   return (
-    <span className={cn("text-xs font-medium px-2.5 py-1 rounded-full", config.className)}>
+    <span className={cn("text-[10px] font-semibold px-2 py-0.5 rounded-md", config.className)}>
       {config.label}
     </span>
   );
