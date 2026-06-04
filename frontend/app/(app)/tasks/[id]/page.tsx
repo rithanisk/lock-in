@@ -11,6 +11,12 @@ import { useAuthStore } from "@/stores/useAuthStore";
 import { createClient } from "@/lib/supabase/client";
 import type { Task } from "@/types";
 import api from "@/lib/api";
+import { cn } from "@/lib/utils";
+
+const categoryColors: Record<string, string> = {
+  study: "bg-indigo-500", fitness: "bg-orange-500", wellness: "bg-emerald-500",
+  productivity: "bg-blue-500", social: "bg-pink-500", custom: "bg-gray-400",
+};
 
 export default function TaskDetailPage() {
   const params = useParams();
@@ -23,37 +29,27 @@ export default function TaskDetailPage() {
 
   useEffect(() => {
     async function load() {
-      try {
-        const res = await api.get(`/tasks/${taskId}`);
-        setTask(res.data);
-      } catch { /* */ } finally { setLoading(false); }
+      try { const res = await api.get(`/tasks/${taskId}`); setTask(res.data); }
+      catch { /**/ } finally { setLoading(false); }
     }
     load();
-
     const supabase = createClient();
-    const channel = supabase
-      .channel(`task-${taskId}`)
+    const channel = supabase.channel(`task-${taskId}`)
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "tasks", filter: `id=eq.${taskId}` },
-        (payload) =>
-          setTask((prev) => {
-            const row = payload.new as Partial<Task>;
-            if (!prev) return row as Task;
-            return {
-              ...prev,
-              ...row,
-              proof_url: row.proof_url ?? prev.proof_url,
-              proof_text: row.proof_text ?? prev.proof_text,
-              verifier_feedback: row.verifier_feedback ?? prev.verifier_feedback,
-              creator_name: prev.creator_name,
-              verifier_name: prev.verifier_name,
-            };
-          }))
+        (payload) => setTask((prev) => {
+          const row = payload.new as Partial<Task>;
+          if (!prev) return row as Task;
+          return { ...prev, ...row, proof_url: row.proof_url ?? prev.proof_url, proof_text: row.proof_text ?? prev.proof_text, verifier_feedback: row.verifier_feedback ?? prev.verifier_feedback, creator_name: prev.creator_name, verifier_name: prev.verifier_name };
+        }))
       .subscribe();
-
     return () => { supabase.removeChannel(channel); };
   }, [taskId]);
 
-  if (loading) return <p className="text-muted-foreground py-8 text-center">Loading...</p>;
+  if (loading) return (
+    <div className="space-y-4 pt-4">
+      {[1, 2, 3].map(i => <div key={i} className="rounded-2xl bg-card card-shadow h-16 animate-pulse" />)}
+    </div>
+  );
   if (!task) return <p className="text-destructive py-8 text-center">Task not found.</p>;
 
   const isCreator = user?.id === task.creator_id;
@@ -61,161 +57,144 @@ export default function TaskDetailPage() {
 
   async function handleAccept() {
     setActionLoading(true);
-    try { const res = await api.post(`/tasks/${taskId}/accept`); setTask(res.data); } catch { /* */ }
+    try { const res = await api.post(`/tasks/${taskId}/accept`); setTask(res.data); } catch { /**/ }
     finally { setActionLoading(false); }
   }
-
   async function handleDecline() {
     setActionLoading(true);
-    try { const res = await api.post(`/tasks/${taskId}/decline`); setTask(res.data); } catch { /* */ }
+    try { const res = await api.post(`/tasks/${taskId}/decline`); setTask(res.data); } catch { /**/ }
     finally { setActionLoading(false); }
   }
-
   async function handleSubmitProof(proofUrl: string | null, proofText: string | null) {
     setActionLoading(true);
-    try { const res = await api.post(`/tasks/${taskId}/submit`, { proof_url: proofUrl, proof_text: proofText }); setTask(res.data); } catch { /* */ }
+    try { const res = await api.post(`/tasks/${taskId}/submit`, { proof_url: proofUrl, proof_text: proofText }); setTask(res.data); } catch { /**/ }
     finally { setActionLoading(false); }
   }
-
   async function handleVerify(approved: boolean, feedback: string | null) {
     setActionLoading(true);
-    try { const res = await api.post(`/tasks/${taskId}/verify`, { approved, feedback }); setTask(res.data); setVerifyOpen(false); } catch { /* */ }
+    try { const res = await api.post(`/tasks/${taskId}/verify`, { approved, feedback }); setTask(res.data); setVerifyOpen(false); } catch { /**/ }
     finally { setActionLoading(false); }
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <Link
-          href="/tasks"
-          className="inline-flex items-center gap-1 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-        >
-          <span aria-hidden="true">&larr;</span>
-          Back to Stakes
-        </Link>
+    <div className="space-y-4 pb-4">
+      {/* Back */}
+      <Link href="/tasks" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+          <polyline points="15 18 9 12 15 6" />
+        </svg>
+        Stakes
+      </Link>
+
+      {/* Hero card */}
+      <div className="rounded-3xl bg-card card-shadow overflow-hidden">
+        <div className={cn("h-1.5 w-full", categoryColors[task.category] ?? "bg-gray-400")} />
+        <div className="p-5">
+          <div className="flex items-start justify-between gap-3 mb-2">
+            <h1 className="text-lg font-bold leading-snug flex-1">{task.title}</h1>
+            <StatusBadge status={task.status} />
+          </div>
+          {task.description && (
+            <p className="text-sm text-muted-foreground mb-4">{task.description}</p>
+          )}
+          <div className="flex items-center gap-3 flex-wrap">
+            <div className="rounded-2xl bg-foreground px-4 py-2 text-background">
+              <span className="text-xl font-bold">{task.stake_amount}</span>
+              <span className="text-xs opacity-50 ml-1">LC</span>
+            </div>
+            <span className="text-sm text-muted-foreground capitalize rounded-xl bg-muted px-3 py-1.5">{task.category}</span>
+            {task.status === "active" && (
+              <CountdownTimer deadline={task.deadline} className="text-sm font-semibold text-red-500" />
+            )}
+          </div>
+        </div>
       </div>
 
-      {/* Header */}
-      <div>
-        <div className="flex items-start justify-between gap-3 mb-2">
-          <h1 className="text-xl font-bold">{task.title}</h1>
-          <StatusBadge status={task.status} />
+      {/* Meta */}
+      <div className="rounded-2xl bg-card card-shadow divide-y divide-border overflow-hidden">
+        <div className="flex items-center justify-between px-4 py-3">
+          <span className="text-sm text-muted-foreground">Verifier</span>
+          <span className="text-sm font-semibold">{task.verifier_name ?? "Unknown"}</span>
         </div>
-        {task.description && (
-          <p className="text-muted-foreground text-sm">{task.description}</p>
-        )}
-        <div className="mt-3 flex flex-wrap gap-2 text-xs">
-          <span className="rounded-full bg-muted px-2.5 py-1 text-muted-foreground">
-            Verifier: {task.verifier_name ?? "Unknown"}
+        <div className="flex items-center justify-between px-4 py-3">
+          <span className="text-sm text-muted-foreground">Due</span>
+          <span className="text-sm font-semibold">
+            {new Date(task.deadline).toLocaleDateString([], { month: "short", day: "numeric" })}{" "}
+            {new Date(task.deadline).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
           </span>
         </div>
+        <div className="flex items-center justify-between px-4 py-3">
+          <span className="text-sm text-muted-foreground">Proof type</span>
+          <span className="text-sm font-semibold capitalize">{task.proof_type}</span>
+        </div>
       </div>
 
-      {/* Info bar */}
-      <div className="flex items-center gap-4 flex-wrap">
-        <span className="text-2xl font-bold text-accent">${task.stake_amount}</span>
-        <span className="text-sm text-muted-foreground capitalize bg-muted px-2.5 py-0.5 rounded-full">{task.category}</span>
-        {task.status === "active" && (
-          <CountdownTimer deadline={task.deadline} className="text-sm font-medium text-destructive" />
-        )}
-      </div>
-
+      {/* Declined notice */}
       {task.status === "declined" && (
-        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900">
-          {isVerifier
-            ? "You declined this stake. The creator's stake was returned."
-            : "Verifier declined this stake. Your stake was returned."}
+        <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3.5 text-sm text-red-800">
+          {isVerifier ? "You declined this stake. The creator's stake was returned." : "Verifier declined this stake. Your stake was returned."}
         </div>
       )}
 
-      <p className="text-sm font-medium text-red-600">
-        Due date:{" "}
-        {new Date(task.deadline).toLocaleDateString([], {
-          month: "2-digit",
-          day: "2-digit",
-        })}{" "}
-        {new Date(task.deadline).toLocaleTimeString([], {
-          hour: "numeric",
-          minute: "2-digit",
-          hour12: true,
-        })}
-      </p>
-
+      {/* Proof */}
       {(task.proof_url || task.proof_text) && (
-        <div className="rounded-2xl border border-border bg-card p-4 space-y-3">
-          <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            Submitted proof
-          </h3>
-          {task.proof_url && (
-            <div className="overflow-hidden rounded-xl border bg-muted/30">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={task.proof_url}
-                alt="Submitted proof"
-                className="mx-auto max-h-[min(360px,55vh)] w-full object-contain"
-              />
-            </div>
-          )}
-          {task.proof_text && (
-            <div>
-              <p className="text-xs font-medium text-muted-foreground mb-1">Notes</p>
-              <p className="text-sm">{task.proof_text}</p>
-            </div>
-          )}
+        <div className="rounded-2xl bg-card card-shadow overflow-hidden">
+          <div className="px-4 py-3 border-b border-border">
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Submitted Proof</p>
+          </div>
+          <div className="p-4 space-y-3">
+            {task.proof_url && (
+              <div className="overflow-hidden rounded-2xl bg-muted">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={task.proof_url} alt="Proof" className="w-full max-h-72 object-contain" />
+              </div>
+            )}
+            {task.proof_text && (
+              <p className="text-sm text-foreground leading-relaxed">{task.proof_text}</p>
+            )}
+          </div>
         </div>
       )}
 
+      {/* Verifier feedback */}
       {(task.status === "completed" || task.status === "failed") && task.verifier_feedback && (
-        <div className="rounded-2xl border border-border bg-muted/40 p-4">
-          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">
-            Verifier feedback
-          </p>
-          <p className="text-sm whitespace-pre-wrap">{task.verifier_feedback}</p>
+        <div className="rounded-2xl bg-muted/60 px-4 py-3.5">
+          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">Verifier Feedback</p>
+          <p className="text-sm leading-relaxed">{task.verifier_feedback}</p>
         </div>
       )}
 
-      {/* Verifier Actions */}
+      {/* Verifier: Accept/Decline */}
       {isVerifier && task.status === "pending_acceptance" && (
-        <div className="flex gap-3">
+        <div className="flex gap-3 pt-2">
           <button onClick={handleDecline} disabled={actionLoading}
-            className="flex-1 rounded-xl border border-border py-2.5 text-sm font-medium hover:bg-muted transition-colors disabled:opacity-50">
+            className="flex-1 rounded-2xl border border-border bg-card py-4 text-sm font-semibold hover:bg-muted transition-colors disabled:opacity-50 active:scale-[0.98]">
             Decline
           </button>
           <button onClick={handleAccept} disabled={actionLoading}
-            className="flex-1 rounded-xl bg-gray-900 text-white py-2.5 text-sm font-medium hover:bg-gray-800 transition-colors disabled:opacity-50">
-            Accept
+            className="flex-1 rounded-2xl bg-foreground text-background py-4 text-sm font-semibold disabled:opacity-50 active:scale-[0.98] transition-transform">
+            {actionLoading ? "..." : "Accept Stake"}
           </button>
         </div>
       )}
 
       {/* Creator: Submit Proof */}
       {isCreator && task.status === "active" && (
-        <div className="rounded-2xl border border-border p-5 space-y-3">
+        <div className="rounded-2xl bg-card card-shadow p-5 space-y-4">
           <h3 className="font-semibold">Submit Proof</h3>
-          <ProofUploader
-            taskId={task.id}
-            proofType={task.proof_type}
-            onSubmit={handleSubmitProof}
-            loading={actionLoading}
-          />
+          <ProofUploader taskId={task.id} proofType={task.proof_type} onSubmit={handleSubmitProof} loading={actionLoading} />
         </div>
       )}
 
       {/* Verifier: Verify */}
       {isVerifier && task.status === "proof_submitted" && (
         <button onClick={() => setVerifyOpen(true)}
-          className="w-full rounded-xl bg-gray-900 text-white py-3 text-sm font-medium hover:bg-gray-800 transition-colors">
-          Review &amp; Verify
+          className="w-full rounded-2xl bg-foreground text-background py-4 text-sm font-semibold active:scale-[0.98] transition-transform">
+          Review &amp; Verify Proof
         </button>
       )}
 
-      <VerifyModal
-        task={task}
-        open={verifyOpen}
-        onClose={() => setVerifyOpen(false)}
-        onVerify={handleVerify}
-        loading={actionLoading}
-      />
+      <VerifyModal task={task} open={verifyOpen} onClose={() => setVerifyOpen(false)} onVerify={handleVerify} loading={actionLoading} />
     </div>
   );
 }
